@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "reservations": {
+      "title": "Reservations",
+      "description": "Kingdom Hall scheduling reservations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "entityGroup": { "type": "string" },
+        "eventType": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "responsibleName": { "type": "string" },
+        "responsiblePhone": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string" },
+        "whatsappSent": { "type": "boolean" }
+      },
+      "required": ["entityGroup", "eventType", "date", "startTime", "endTime", "responsibleName", "status"]
+    },
+    "weekly_schedules": {
+      "title": "Weekly Schedules",
+      "description": "Fixed weekly meetings schedules for Kingdom Hall",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "dayOfWeek": { "type": "string" },
+        "dayIndex": { "type": "number" },
+        "entityGroup": { "type": "string" },
+        "eventType": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["dayOfWeek", "dayIndex", "entityGroup", "eventType", "startTime", "endTime"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Reservas do Salão do Reino",
+  "description": "Aplicativo acessível e simplificado para agendamento do Salão do Reino com suporte a voz, leitura de tela e envio WhatsApp.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-900 font-sans antialiased min-h-screen selection:bg-amber-300 selection:text-slate-900;
+  }
+}
+
+/* Accessibility Font Size Classes */
+.font-size-normal {
+  font-size: 16px;
+}
+
+.font-size-large {
+  font-size: 19px;
+}
+
+.font-size-extra-large {
+  font-size: 22px;
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast button, 
+.high-contrast input, 
+.high-contrast select, 
+.high-contrast textarea {
+  border: 3px solid #ffff00 !important;
+}
+
+.high-contrast .bg-white,
+.high-contrast .bg-slate-50,
+.high-contrast .bg-slate-100,
+.high-contrast .bg-slate-200 {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+.high-contrast .text-slate-600,
+.high-contrast .text-slate-500,
+.high-contrast .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+/* Focus Ring for Low Vision Accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 4px solid #d97706 !important; /* Amber 600 */
+  outline-offset: 3px !important;
+}
+
+/* Animations */
+@keyframes pulseMic {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.animate-mic-pulse {
+  animation: pulseMic 1.5s infinite ease-in-out;
+}
+
+/* Print CSS for Bulletin Board Schedule Printout */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-page {
+    padding: 20px !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
