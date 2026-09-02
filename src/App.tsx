@@ -5,6 +5,7 @@ import { ReservationWizard } from './components/ReservationWizard';
 import { ArchivedView } from './components/ArchivedView';
 import { TutorialModal } from './components/TutorialModal';
 import { SettingsModal } from './components/SettingsModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Reservation, AccessibilitySettings, WhatsAppConfig, WeeklySchedule } from './types';
 import { 
   subscribeReservations, 
@@ -143,6 +144,9 @@ export default function App() {
         weeklySchedules={weeklySchedules}
         onRefreshData={() => {}}
       />
+
+      {/* PWA Offline Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   Building2
 } from 'lucide-react';
 import { AccessibilitySettings } from '../types';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   accessibility: AccessibilitySettings;
@@ -69,6 +70,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Utility Tools */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* PWA Install Button */}
+            <PWAInstallButton />
+
             {/* Font Size Button */}
             <button
               onClick={cycleFontSize}
