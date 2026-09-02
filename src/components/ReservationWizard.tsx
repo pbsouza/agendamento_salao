@@ -10,7 +10,6 @@ import {
   CheckCircle2, 
   ArrowLeft, 
   ArrowRight, 
-  Volume2, 
   Share2, 
   PlusCircle,
   HelpCircle,
@@ -19,7 +18,6 @@ import {
 import { EntityGroup, EventType, Reservation, WhatsAppConfig, WeeklySchedule } from '../types';
 import { ENTITY_LIST, EVENT_TYPES } from '../data/entities';
 import { checkTimeConflict, addReservation } from '../utils/storage';
-import { speakText, stopSpeaking } from '../utils/speech';
 import { formatWhatsAppMessage, openWhatsAppSharing } from '../utils/whatsapp';
 
 interface ReservationWizardProps {
@@ -27,8 +25,9 @@ interface ReservationWizardProps {
   weeklySchedules?: WeeklySchedule[];
   onComplete: (newReservation: Reservation) => void;
   onCancel: () => void;
-  speechSpeed: number;
+  speechSpeed?: number;
   whatsAppConfig: WhatsAppConfig;
+  initialDate?: string;
 }
 
 export const ReservationWizard: React.FC<ReservationWizardProps> = ({
@@ -36,8 +35,8 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
   weeklySchedules = [],
   onComplete,
   onCancel,
-  speechSpeed,
   whatsAppConfig,
+  initialDate,
 }) => {
   const [step, setStep] = React.useState<1 | 2 | 3 | 4 | 5>(1);
 
@@ -48,7 +47,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
   
   // Date & Time
   const todayStr = new Date().toISOString().split('T')[0];
-  const [date, setDate] = React.useState(todayStr);
+  const [date, setDate] = React.useState(initialDate || todayStr);
   const [startTime, setStartTime] = React.useState('19:30');
   const [endTime, setEndTime] = React.useState('21:30');
 
@@ -72,26 +71,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
     }
   }, [date, startTime, endTime, reservations, weeklySchedules]);
 
-  // Read step text aloud when step changes
-  const speakCurrentStepInfo = () => {
-    let msg = '';
-    if (step === 1) {
-      msg = `Passo 1 de 5: Selecione quem está agendando. Atualmente selecionado: ${selectedEntity}.`;
-    } else if (step === 2) {
-      msg = `Passo 2 de 5: Selecione o motivo do uso. Atualmente selecionado: ${selectedEventType}.`;
-    } else if (step === 3) {
-      msg = `Passo 3 de 5: Escolha a data e o horário da reserva. Data: ${date}, das ${startTime} às ${endTime}.`;
-      if (conflict) {
-        msg += ` Atenção! Existe um conflito com ${conflict.entityGroup} das ${conflict.startTime} às ${conflict.endTime}.`;
-      }
-    } else if (step === 4) {
-      msg = `Passo 4 de 5: Digite o nome do irmão responsável e o telefone.`;
-    } else if (step === 5) {
-      msg = `Passo 5 de 5: Confirmação da reserva para ${selectedEntity} no dia ${date} das ${startTime} às ${endTime}. Clique no botão grande para confirmar.`;
-    }
-    speakText(msg, speechSpeed);
-  };
-
   // Quick date helper handlers
   const setQuickDate = (type: 'today' | 'tomorrow' | 'saturday' | 'sunday') => {
     const d = new Date();
@@ -104,21 +83,12 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
     }
     const formatted = d.toISOString().split('T')[0];
     setDate(formatted);
-
-    const labels = {
-      today: 'Data alterada para Hoje',
-      tomorrow: 'Data alterada para Amanhã',
-      saturday: 'Data alterada para Próximo Sábado',
-      sunday: 'Data alterada para Próximo Domingo',
-    };
-    speakText(labels[type], speechSpeed);
   };
 
   // Submit Handler
   const handleConfirmReservation = async () => {
     if (!responsibleName.trim()) {
       alert('Por favor, informe o nome do responsável.');
-      speakText('Por favor, informe o nome do irmão responsável.', speechSpeed);
       return;
     }
 
@@ -138,7 +108,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
       });
 
       setCreatedReservation(newRes);
-      speakText('Agendamento realizado com sucesso! Você pode enviar agora no WhatsApp da congregação.', speechSpeed);
     } catch (err) {
       console.error('Error adding reservation to Firestore:', err);
       alert('Ocorreu um erro ao salvar o agendamento no Firebase.');
@@ -191,11 +160,11 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
           </div>
 
           <button
-            onClick={speakCurrentStepInfo}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-sm border border-amber-300 shadow transition-all shrink-0"
+            onClick={onCancel}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm border border-slate-600 shadow transition-all shrink-0"
           >
-            <Volume2 className="w-5 h-5" />
-            <span>Ouvir este Passo</span>
+            <X className="w-5 h-5" />
+            <span>Voltar ao Calendário</span>
           </button>
         </div>
 
@@ -238,7 +207,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
                   key={ent.id}
                   onClick={() => {
                     setSelectedEntity(ent.id);
-                    speakText(`Selecionado: ${ent.name}`, speechSpeed);
                   }}
                   className={`p-5 rounded-2xl border-4 text-left transition-all flex items-start gap-4 ${
                     isSelected
@@ -301,7 +269,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
                   key={ev.id}
                   onClick={() => {
                     setSelectedEventType(ev.id);
-                    speakText(`Atividade selecionada: ${ev.label}`, speechSpeed);
                   }}
                   className={`p-4 rounded-2xl border-4 text-left transition-all flex items-center gap-4 ${
                     isSelected

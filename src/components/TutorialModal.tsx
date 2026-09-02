@@ -1,29 +1,23 @@
 import React from 'react';
 import { 
   X, 
-  Volume2, 
   CheckCircle2, 
   ArrowRight, 
   ArrowLeft, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   PlusCircle, 
-  Mic, 
   Share2, 
-  Building2,
-  Clock
+  Building2
 } from 'lucide-react';
-import { speakText, stopSpeaking } from '../utils/speech';
 
 interface TutorialModalProps {
   isOpen: boolean;
   onClose: () => void;
-  speechSpeed: number;
 }
 
 export const TutorialModal: React.FC<TutorialModalProps> = ({
   isOpen,
   onClose,
-  speechSpeed,
 }) => {
   const [currentStep, setCurrentStep] = React.useState(0);
 
@@ -35,7 +29,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
       description: 'Este sistema foi feito de forma muito simples para você agendar horários do Salão do Reino da Congregação Juparanã e demais congregações.',
       details: [
         'Organiza reuniões, limpezas, manutenções e visitas do viajante.',
-        'Evita conflitos de horário entre os grupos.',
+        'Evita conflitos de horário entre congregações e reuniões fixas.',
         'Arquiva os agendamentos antigos automaticamente.'
       ]
     },
@@ -43,50 +37,41 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
       title: '2. Como fazer um agendamento?',
       icon: PlusCircle,
       iconColor: 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40',
-      description: 'O processo é guiado passo a passo em poucas telas bem explicadas:',
+      description: 'O processo é guiado passo a passo em telas bem explicadas:',
       details: [
         'Passo 1: Escolha sua congregação ou comissão.',
-        'Passo 2: Escolha o motivo (reunião, limpeza ou manutenção).',
-        'Passo 3: Selecione o dia e o horário desejado.',
-        'Passo 4: Informe seu nome e telefone para contato.',
-        'Passo 5: Confirme o agendamento!'
+        'Passo 2: Escolha a atividade (reunião, limpeza, manutenção, etc.).',
+        'Passo 3: Selecione o dia e o horário desejado (com aviso imediato de conflitos).',
+        'Passo 4: Informe o nome do responsável e telefone de contato.',
+        'Passo 5: Confirme a reserva e compartilhe com os irmãos!'
       ]
     },
     {
-      title: '3. Suporte a Voz e Leitura de Tela',
-      icon: Mic,
+      title: '3. Visão do Calendário Mensal',
+      icon: CalendarIcon,
       iconColor: 'text-sky-400 bg-sky-500/20 border-sky-500/40',
-      description: 'Pensado com muito carinho para quem prefere ouvir ou falar em vez de digitar:',
+      description: 'Veja todos os agendamentos organizados mês a mês:',
       details: [
-        'Clique no botão "Ouvir Tela" para o aplicativo ler as opções em voz alta para você.',
-        'Clique no botão verde "Falar Comando" para dizer o que deseja com a própria voz (ex: "Agendar" ou "Ajuda").',
-        'Você pode aumentar o tamanho das letras no botão de fonte (A+ / A++).'
+        'Navegue entre os meses usando as setas ou vá direto para "Hoje".',
+        'Filtre por congregação específica para ver apenas os eventos do seu grupo.',
+        'Clique em qualquer dia do calendário para ver todos os detalhes ou agendar diretamente para aquela data.',
+        'Alterne entre a visão mensal em grade ou em lista/cartões quando preferir.'
       ]
     },
     {
       title: '4. Aviso no WhatsApp do Grupo',
       icon: Share2,
       iconColor: 'text-green-400 bg-green-500/20 border-green-500/40',
-      description: 'Envie a confirmação da reserva diretamente no WhatsApp:',
+      description: 'Envie a lista completa ou a confirmação no WhatsApp com um clique:',
       details: [
-        'Ao concluir um agendamento, um botão verde grande de WhatsApp aparecerá.',
-        'Ao clicar nele, a mensagem formatada será enviada diretamente no grupo da congregação com todos os dados.'
+        'Ao concluir um agendamento, o botão verde de WhatsApp envia a lista de todos os agendamentos ativos para o grupo.',
+        'Você também pode clicar no botão "Enviar no WhatsApp" na tela inicial a qualquer momento.',
+        'Configure o nome do grupo e o link nas Configurações no topo da página.'
       ]
     }
   ];
 
   const stepData = steps[currentStep];
-
-  const playStepAudio = () => {
-    const textToRead = `${stepData.title}. ${stepData.description}. ${stepData.details.join('. ')}`;
-    speakText(textToRead, speechSpeed);
-  };
-
-  React.useEffect(() => {
-    if (!isOpen) {
-      stopSpeaking();
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -95,10 +80,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
       <div className="bg-slate-900 border-4 border-amber-400 text-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
-          onClick={() => {
-            stopSpeaking();
-            onClose();
-          }}
+          onClick={onClose}
           className="absolute top-4 right-4 bg-slate-800 hover:bg-slate-700 text-slate-300 p-3 rounded-full border-2 border-slate-600 focus:ring-4 focus:ring-amber-400"
         >
           <X className="w-6 h-6" />
@@ -119,25 +101,13 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
 
         {/* Card Content */}
         <div className="bg-slate-800/90 border-2 border-slate-700 rounded-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-2xl border-2 ${stepData.iconColor}`}>
-                <stepData.icon className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-amber-300">
-                {stepData.title}
-              </h3>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-3 rounded-2xl border-2 ${stepData.iconColor}`}>
+              <stepData.icon className="w-8 h-8" />
             </div>
-
-            {/* Read Audio Button */}
-            <button
-              onClick={playStepAudio}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-sm transition-all border border-amber-300 shadow"
-              title="Ouvir em voz alta"
-            >
-              <Volume2 className="w-5 h-5" />
-              <span>Ouvir</span>
-            </button>
+            <h3 className="text-xl sm:text-2xl font-black text-amber-300">
+              {stepData.title}
+            </h3>
           </div>
 
           <p className="text-slate-100 text-base sm:text-lg font-medium leading-relaxed mb-4">
@@ -196,10 +166,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
               </button>
             ) : (
               <button
-                onClick={() => {
-                  stopSpeaking();
-                  onClose();
-                }}
+                onClick={onClose}
                 className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl border-2 border-emerald-300 text-base shadow-lg"
               >
                 <span>Entendi! Começar a Usar</span>
@@ -212,3 +179,4 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
     </div>
   );
 };
+

@@ -1,19 +1,16 @@
 import React from 'react';
-import { Archive, Calendar, Clock, Trash2, Volume2, Info, AlertTriangle, X } from 'lucide-react';
+import { Archive, Calendar, Clock, Trash2, Info, AlertTriangle, X } from 'lucide-react';
 import { Reservation } from '../types';
 import { deleteReservation } from '../utils/storage';
-import { speakText } from '../utils/speech';
 
 interface ArchivedViewProps {
   reservations: Reservation[];
   onRefresh: () => void;
-  speechSpeed: number;
 }
 
 export const ArchivedView: React.FC<ArchivedViewProps> = ({
   reservations,
   onRefresh,
-  speechSpeed,
 }) => {
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = React.useState(false);
@@ -27,7 +24,6 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
       for (const res of archivedList) {
         await deleteReservation(res.id);
       }
-      speakText('Histórico de arquivados limpo com sucesso.', speechSpeed);
       onRefresh();
     } catch (err) {
       console.error('Error clearing archived:', err);
@@ -41,7 +37,6 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
     if (!deleteTargetId) return;
     try {
       await deleteReservation(deleteTargetId);
-      speakText('Agendamento removido do histórico.', speechSpeed);
       onRefresh();
     } catch (err) {
       console.error('Error deleting archived reservation:', err);
@@ -129,24 +124,14 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t-2 border-slate-200 flex items-center justify-between">
-                  <button
-                    onClick={() => {
-                      speakText(`Agendamento arquivado de ${res.entityGroup} no dia ${formattedDate}`, speechSpeed);
-                    }}
-                    className="flex items-center gap-1 text-slate-700 font-bold text-xs hover:text-slate-900"
-                  >
-                    <Volume2 className="w-4 h-4 text-slate-500" />
-                    <span>Ouvir</span>
-                  </button>
-
+                <div className="mt-4 pt-3 border-t-2 border-slate-200 flex items-center justify-end">
                   <button
                     onClick={() => setDeleteTargetId(res.id)}
-                    className="flex items-center gap-1 p-2 text-red-600 hover:bg-red-200 rounded-xl transition-all font-bold text-xs"
+                    className="flex items-center gap-1 px-3 py-1.5 text-red-600 hover:bg-red-100 rounded-xl transition-all font-bold text-xs border border-red-200"
                     title="Apagar do Histórico"
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />
-                    <span>Apagar</span>
+                    <span>Apagar do Histórico</span>
                   </button>
                 </div>
               </div>

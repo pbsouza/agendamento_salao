@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   X, 
   Settings, 
-  Volume2, 
   Save, 
   RefreshCw, 
   MessageSquare, 
@@ -16,7 +15,6 @@ import {
 } from 'lucide-react';
 import { AccessibilitySettings, WhatsAppConfig, WeeklySchedule, EntityGroup, EventType } from '../types';
 import { saveAccessibilitySettings, saveWhatsAppConfig, addWeeklySchedule, deleteWeeklySchedule } from '../utils/storage';
-import { speakText } from '../utils/speech';
 import { ENTITY_LIST, EVENT_TYPES } from '../data/entities';
 
 interface SettingsModalProps {
@@ -50,12 +48,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   weeklySchedules,
   onRefreshData,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'fixed_meetings' | 'whatsapp' | 'voice'>('fixed_meetings');
+  const [activeTab, setActiveTab] = React.useState<'fixed_meetings' | 'whatsapp'>('fixed_meetings');
 
-  // WhatsApp & Voice state
+  // WhatsApp state
   const [groupName, setGroupName] = React.useState(whatsAppConfig.groupName);
   const [phoneOrLink, setPhoneOrLink] = React.useState(whatsAppConfig.phoneOrLink);
-  const [speechSpeed, setSpeechSpeed] = React.useState(accessibility.speechSpeed);
 
   // New Weekly Schedule Form state
   const [selectedDayIndex, setSelectedDayIndex] = React.useState<number>(4); // Quinta-feira default
@@ -69,8 +66,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   React.useEffect(() => {
     setGroupName(whatsAppConfig.groupName);
     setPhoneOrLink(whatsAppConfig.phoneOrLink);
-    setSpeechSpeed(accessibility.speechSpeed);
-  }, [whatsAppConfig, accessibility, isOpen]);
+  }, [whatsAppConfig, isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,18 +77,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       phoneOrLink: phoneOrLink.trim(),
     };
 
-    const updatedAcc: AccessibilitySettings = {
-      ...accessibility,
-      speechSpeed,
-    };
-
     setWhatsAppConfig(updatedWa);
     saveWhatsAppConfig(updatedWa);
-
-    setAccessibility(updatedAcc);
-    saveAccessibilitySettings(updatedAcc);
-
-    speakText('Configurações salvas com sucesso.', speechSpeed);
     onClose();
   };
 
@@ -112,7 +98,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         endTime,
         notes: notes.trim(),
       });
-      speakText(`Reunião de ${selectedEntity} na ${dayObj.label} cadastrada com sucesso.`, speechSpeed);
       setNotes('');
     } catch (err) {
       console.error('Erro ao salvar reunião semanal:', err);
@@ -122,10 +107,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleDeleteSchedule = async (id: string, entity: string, day: string) => {
+  const handleDeleteSchedule = async (id: string) => {
     try {
       await deleteWeeklySchedule(id);
-      speakText(`Reunião de ${entity} na ${day} removida.`, speechSpeed);
     } catch (err) {
       console.error('Erro ao excluir reunião fixa:', err);
       alert('Erro ao remover reunião fixa.');
@@ -186,7 +170,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       for (const item of defaults) {
         await addWeeklySchedule(item);
       }
-      speakText('Dias fixos padrão das congregações cadastrados com sucesso.', speechSpeed);
     } catch (err) {
       console.error('Erro ao popular padrão:', err);
     } finally {
@@ -220,7 +203,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Internal Navigation Tabs */}
-        <div className="grid grid-cols-3 gap-2 mb-6 bg-slate-850 p-1.5 rounded-2xl border-2 border-slate-700">
+        <div className="grid grid-cols-2 gap-2 mb-6 bg-slate-850 p-1.5 rounded-2xl border-2 border-slate-700">
           <button
             onClick={() => setActiveTab('fixed_meetings')}
             className={`py-2.5 px-2 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all ${
@@ -243,18 +226,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <MessageSquare className="w-4 h-4 shrink-0" />
             <span className="truncate">WhatsApp</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('voice')}
-            className={`py-2.5 px-2 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all ${
-              activeTab === 'voice'
-                ? 'bg-amber-400 text-slate-950 shadow-md scale-[1.02]'
-                : 'text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            <Volume2 className="w-4 h-4 shrink-0" />
-            <span className="truncate">Leitura por Voz</span>
           </button>
         </div>
 
@@ -448,7 +419,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
 
                         <button
-                          onClick={() => handleDeleteSchedule(sch.id, sch.entityGroup, sch.dayOfWeek)}
+                          onClick={() => handleDeleteSchedule(sch.id)}
                           className="p-2 text-red-400 hover:text-red-200 hover:bg-red-950/60 rounded-xl border border-red-900 transition-all shrink-0"
                           title="Excluir dia fixo"
                         >
@@ -511,66 +482,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <Save className="w-5 h-5" />
                 <span>Salvar Configuração do WhatsApp</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: Voice Settings */}
-        {activeTab === 'voice' && (
-          <div className="space-y-5">
-            <div className="bg-slate-800/90 border-2 border-slate-700 rounded-2xl p-5">
-              <h3 className="text-lg font-black text-amber-300 flex items-center gap-2 mb-3">
-                <Volume2 className="w-5 h-5 text-sky-400" />
-                Velocidade da Leitura por Voz
-              </h3>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSpeechSpeed(0.8)}
-                  className={`p-3 rounded-xl border-2 font-bold text-sm ${
-                    speechSpeed === 0.8
-                      ? 'bg-amber-500 text-slate-950 border-amber-300 font-black'
-                      : 'bg-slate-900 text-slate-300 border-slate-700'
-                  }`}
-                >
-                  🐢 Lenta (0.8x)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSpeechSpeed(1.0)}
-                  className={`p-3 rounded-xl border-2 font-bold text-sm ${
-                    speechSpeed === 1.0
-                      ? 'bg-amber-500 text-slate-950 border-amber-300 font-black'
-                      : 'bg-slate-900 text-slate-300 border-slate-700'
-                  }`}
-                >
-                  🚶 Normal (1.0x)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSpeechSpeed(1.2)}
-                  className={`p-3 rounded-xl border-2 font-bold text-sm ${
-                    speechSpeed === 1.2
-                      ? 'bg-amber-500 text-slate-950 border-amber-300 font-black'
-                      : 'bg-slate-900 text-slate-300 border-slate-700'
-                  }`}
-                >
-                  🏃 Rápida (1.2x)
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleSaveGeneral}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl border-2 border-emerald-300 text-base shadow-lg"
-              >
-                <Save className="w-5 h-5" />
-                <span>Salvar Ajustes de Leitura</span>
               </button>
             </div>
           </div>

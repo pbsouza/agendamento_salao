@@ -1,6 +1,6 @@
 {
   "name": "Reservas do Salão do Reino",
-  "description": "Aplicativo acessível e simplificado para agendamento do Salão do Reino com suporte a voz, leitura de tela e envio WhatsApp.",
-  "requestFramePermissions": ["microphone"],
+  "description": "Calendário mensal e gerenciador de agendamentos compartilhado do Salão do Reino da Congregação Juparanã e comissões com validação de horários e integração com WhatsApp.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
