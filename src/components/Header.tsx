@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
                 Calendário de Reservas
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                Salão do Reino Juparanã
+                Salão do Reino
               </p>
             </div>
           </div>
