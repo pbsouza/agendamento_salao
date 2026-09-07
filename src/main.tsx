@@ -18,8 +18,9 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   } else {
     // Direct browser navigation / PWA mode
     window.addEventListener('load', () => {
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
       navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
+        .register(swUrl)
         .catch(() => {});
     });
   }

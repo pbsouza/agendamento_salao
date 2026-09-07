@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('calendar')}
           >
             <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center p-1.5 shadow-sm shrink-0 border border-slate-800">
-              <img src="/favicon.png" alt="Salão do Reino" className="w-full h-full object-contain" />
+              <img src="./favicon.png" alt="Salão do Reino" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
