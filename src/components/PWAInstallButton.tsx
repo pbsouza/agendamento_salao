@@ -20,7 +20,7 @@ export const PWAInstallButton: React.FC = () => {
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition-all animate-pulse hover:animate-none"
         title="Instalar Aplicativo no Dispositivo"
       >
-        <img src="./favicon.png" alt="" className="w-3.5 h-3.5 object-contain" />
+        <img src="./app-icon.png" alt="" className="w-4 h-4 rounded-xs object-cover shrink-0" />
         <span>Instalar App</span>
       </button>
     );
@@ -36,7 +36,7 @@ export const PWAInstallButton: React.FC = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all"
           title="Como instalar no iPhone / iPad"
         >
-          <img src="./favicon.png" alt="" className="w-3.5 h-3.5 object-contain" />
+          <img src="./app-icon.png" alt="" className="w-4 h-4 rounded-xs object-cover shrink-0" />
           <span>Instalar no iOS</span>
         </button>
 
