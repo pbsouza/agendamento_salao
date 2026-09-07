@@ -120,10 +120,10 @@ export default function App() {
       <footer className="bg-white text-slate-500 py-6 text-center text-xs border-t border-slate-200 no-print">
         <div className="max-w-7xl mx-auto px-4">
           <p className="font-bold text-slate-700">
-            Salão do Reino das Testemunhas de Jeová - Juparanã
+            Salão do Reino das Testemunhas de Jeová
           </p>
           <p className="text-slate-400 mt-0.5">
-            Calendário oficial de agendamentos e uso compartilhado do salão.
+            Calendário de agendamentos e uso compartilhado do Salão.
           </p>
         </div>
       </footer>
