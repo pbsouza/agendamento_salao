@@ -16,7 +16,9 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
   const [isDeletingAll, setIsDeletingAll] = React.useState(false);
   const [showClearAllModal, setShowClearAllModal] = React.useState(false);
 
-  const archivedList = reservations.filter(r => r.status === 'archived');
+  const archivedList = [...reservations]
+    .filter(r => r.status === 'archived')
+    .sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
 
   const confirmClearAllArchived = async () => {
     setIsDeletingAll(true);

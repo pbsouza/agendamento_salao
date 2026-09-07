@@ -31,7 +31,9 @@ const SCHEDULES_CACHE_KEY = 'kingdom_hall_schedules_cache_v1';
 function getCachedReservations(): Reservation[] {
   try {
     const data = localStorage.getItem(RESERVATIONS_CACHE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const list: Reservation[] = JSON.parse(data);
+    return list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
   } catch {
     return [];
   }
@@ -85,6 +87,8 @@ export function subscribeReservations(
             id: docSnap.id,
           });
         });
+        // Sort reservations chronologically by date and start time
+        list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
         // Cache locally for offline/fallback use
         setCachedReservations(list);
         // Check and archive past reservations automatically

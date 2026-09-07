@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   CalendarCheck,
   Check,
-  Info
+  Info,
+  ArrowUpDown
 } from 'lucide-react';
 import { EntityGroup, EventType, Reservation, WhatsAppConfig, WeeklySchedule } from '../types';
 import { ENTITY_LIST, EVENT_TYPES } from '../data/entities';
@@ -79,8 +80,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [savedReservation, setSavedReservation] = React.useState<Reservation | null>(null);
 
-  // Filter active reservations
-  const activeList = reservations.filter(r => r.status === 'active');
+  // Filter active reservations sorted chronologically by date and start time
+  const activeList = [...reservations]
+    .filter(r => r.status === 'active')
+    .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
 
   const filteredReservations = activeList.filter(item => {
     if (selectedEntityFilter !== 'all' && item.entityGroup !== selectedEntityFilter) {
@@ -367,9 +370,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     year: 'numeric'
   });
 
-  const selectedDateReservations = activeList.filter(r => r.date === selectedDate);
+  const selectedDateReservations = activeList
+    .filter(r => r.date === selectedDate)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  // Group reservations for upcoming months display (matching screenshot bottom section)
+  // Sort direction for the monthly agenda view (defaulting to chronological: closest/most recent days first)
+  const [agendaSortOrder, setAgendaSortOrder] = React.useState<'asc' | 'desc'>('asc');
+
+  // Group reservations for upcoming months display (sorted by day and time)
   const upcomingMonths = [0, 1, 2].map(offset => {
     let m = viewMonth + offset;
     let y = viewYear;
@@ -379,7 +387,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
     const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
     const label = `${MONTH_NAMES[m]} de ${y}`;
-    const monthReservations = filteredReservations.filter(r => r.date.startsWith(monthKey));
+    const monthReservations = filteredReservations
+      .filter(r => r.date.startsWith(monthKey))
+      .sort((a, b) => {
+        if (agendaSortOrder === 'desc') {
+          return b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime);
+        }
+        return a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime);
+      });
     return { monthKey, label, monthReservations };
   });
 
@@ -925,13 +940,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* SECTION: AGENDA DOS PRÓXIMOS MESES (Style of bottom screenshot) */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-            Agenda dos Próximos Meses
-          </h3>
-          <span className="text-xs text-slate-400">
-            {filteredReservations.length} total de eventos ativos
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+              Agenda dos Próximos Meses
+            </h3>
+            <span className="text-xs text-slate-400">
+              {filteredReservations.length} total de eventos ativos
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAgendaSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors border border-slate-200"
+              title="Clique para alternar entre dias mais próximos e dias mais distantes"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+              <span>
+                {agendaSortOrder === 'asc' 
+                  ? 'Ordem: Mais recentes/próximos primeiro' 
+                  : 'Ordem: Mais distantes primeiro'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {upcomingMonths.map((monthGroup) => (
