@@ -1,29 +1,37 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { registerSW } from 'virtual:pwa-register';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Safely register PWA service worker with automatic update
+// Service Worker Handling
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  try {
-    registerSW({ 
-      immediate: true,
-      onRegisterError(error) {
-        console.warn('PWA service worker registration error:', error);
-      }
+  if (window.self !== window.top) {
+    // Inside preview iframe: purge any existing workers to guarantee live preview renders directly
+    try {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          reg.unregister().catch(() => {});
+        }
+      }).catch(() => {});
+    } catch {}
+  } else {
+    // Direct browser navigation / PWA mode
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch(() => {});
     });
-  } catch (err) {
-    console.warn('PWA service worker bypass:', err);
   }
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-);
-
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+}

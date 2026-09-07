@@ -97,7 +97,9 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {archivedList.map((res) => {
             const [y, m, d] = res.date.split('-');
-            const formattedDate = `${d}/${m}/${y}`;
+            const formattedDate = res.endDate
+              ? `${d}/${m}/${y} a ${res.endDate.split('-').reverse().join('/')}`
+              : `${d}/${m}/${y}`;
 
             return (
               <div
@@ -109,7 +111,7 @@ export const ArchivedView: React.FC<ArchivedViewProps> = ({
                     <span className="bg-slate-800 text-slate-200 px-3 py-1 rounded-lg font-bold text-xs uppercase">
                       {res.entityGroup}
                     </span>
-                    <span className="text-slate-600 font-extrabold text-sm">
+                    <span className="text-slate-600 font-extrabold text-xs sm:text-sm">
                       📅 {formattedDate}
                     </span>
                   </div>

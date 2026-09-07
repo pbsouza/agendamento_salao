@@ -16,6 +16,7 @@ export type EventType =
   | 'Treinamento / Escola'
   | 'Reunião de Grupo'
   | 'Visita do Viajante'
+  | 'Reunião Trimestral'
   | 'Outro Uso';
 
 export interface Reservation {
@@ -24,6 +25,7 @@ export interface Reservation {
   eventType: EventType;
   title: string;
   date: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD (opcional: término para períodos como Visita do Superintendente de Terça a Domingo)
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   responsibleName: string;

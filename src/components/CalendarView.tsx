@@ -18,12 +18,14 @@ import {
   CalendarCheck,
   Check,
   Info,
-  ArrowUpDown
+  ArrowUpDown,
+  Award
 } from 'lucide-react';
 import { EntityGroup, EventType, Reservation, WhatsAppConfig, WeeklySchedule } from '../types';
 import { ENTITY_LIST, EVENT_TYPES } from '../data/entities';
 import { deleteReservation, addReservation, checkTimeConflict } from '../utils/storage';
 import { formatWhatsAppMessage, openWhatsAppSharing } from '../utils/whatsapp';
+import { getCircuitOverseerWeek, isDateInReservation } from '../utils/dateUtils';
 
 interface CalendarViewProps {
   reservations: Reservation[];
@@ -151,7 +153,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       isCurrentMonth: false,
       isToday: dateStr === todayStr,
       isSelected: dateStr === selectedDate,
-      reservations: activeList.filter(r => r.date === dateStr),
+      reservations: activeList.filter(r => isDateInReservation(r, dateStr)),
     });
   }
 
@@ -168,7 +170,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       isCurrentMonth: true,
       isToday: dateStr === todayStr,
       isSelected: dateStr === selectedDate,
-      reservations: activeList.filter(r => r.date === dateStr),
+      reservations: activeList.filter(r => isDateInReservation(r, dateStr)),
     });
   }
 
@@ -188,18 +190,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       isCurrentMonth: false,
       isToday: dateStr === todayStr,
       isSelected: dateStr === selectedDate,
-      reservations: activeList.filter(r => r.date === dateStr),
+      reservations: activeList.filter(r => isDateInReservation(r, dateStr)),
     });
   }
 
+  // Circuit Overseer week calculation if Visita do Viajante is chosen
+  const isSuperintendenteInline = bookingEventType === 'Visita do Viajante';
+  const overseerWeek = isSuperintendenteInline ? getCircuitOverseerWeek(selectedDate) : null;
+  const inlineEffectiveStartDate = overseerWeek ? overseerWeek.startDate : selectedDate;
+  const inlineEffectiveEndDate = overseerWeek ? overseerWeek.endDate : undefined;
+  const inlineEffectiveEntity = isSuperintendenteInline ? 'Viajante' : bookingEntity;
+
   // Conflict validation for the inline booking form on selected day
   const timeConflict = checkTimeConflict(
-    selectedDate,
+    inlineEffectiveStartDate,
     bookingStartTime,
     bookingEndTime,
     reservations,
     undefined,
-    weeklySchedules
+    weeklySchedules,
+    inlineEffectiveEndDate
   );
 
   // Handle day click
@@ -239,10 +249,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setIsSubmitting(true);
     try {
       const newRes = await addReservation({
-        entityGroup: bookingEntity,
+        entityGroup: inlineEffectiveEntity,
         eventType: bookingEventType,
         title: bookingEventType,
-        date: selectedDate,
+        date: inlineEffectiveStartDate,
+        endDate: inlineEffectiveEndDate,
         startTime: bookingStartTime,
         endTime: bookingEndTime,
         responsibleName: bookingResponsibleName.trim(),
@@ -371,7 +382,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   });
 
   const selectedDateReservations = activeList
-    .filter(r => r.date === selectedDate)
+    .filter(r => isDateInReservation(r, selectedDate))
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   // Sort direction for the monthly agenda view (defaulting to chronological: closest/most recent days first)
@@ -388,7 +399,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
     const label = `${MONTH_NAMES[m]} de ${y}`;
     const monthReservations = filteredReservations
-      .filter(r => r.date.startsWith(monthKey))
+      .filter(r => r.date.startsWith(monthKey) || (r.endDate && r.endDate.startsWith(monthKey)))
       .sort((a, b) => {
         if (agendaSortOrder === 'desc') {
           return b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime);
@@ -660,9 +671,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">
-                        {res.entityGroup}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800">
+                          {res.entityGroup}
+                        </span>
+                        {res.endDate && (
+                          <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                            Terça a Domingo
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs font-black text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200 flex items-center gap-1">
                         <Clock className="w-3 h-3 text-slate-500" />
                         {res.startTime} - {res.endTime}
@@ -781,14 +799,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="flex flex-wrap gap-1.5">
               {EVENT_TYPES.map((ev) => {
                 const isSelected = bookingEventType === ev.id;
+                const isSuperintendente = ev.id === 'Visita do Viajante';
                 return (
                   <button
                     type="button"
                     key={ev.id}
-                    onClick={() => setBookingEventType(ev.id)}
+                    onClick={() => {
+                      setBookingEventType(ev.id);
+                      if (isSuperintendente) {
+                        setBookingEntity('Viajante');
+                      }
+                    }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
                       isSelected
-                        ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold'
+                        ? isSuperintendente
+                          ? 'bg-purple-900 text-amber-300 border-purple-950 font-black'
+                          : 'bg-amber-100 text-amber-950 border-amber-400 font-bold'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -797,6 +823,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 );
               })}
             </div>
+
+            {/* Circuit Overseer Week Notice */}
+            {isSuperintendenteInline && overseerWeek && (
+              <div className="mt-2 p-3 bg-purple-50 border border-purple-300 rounded-xl flex items-start gap-2.5">
+                <Award className="w-5 h-5 text-purple-700 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <strong className="text-purple-950 block">
+                    Visita do Superintendente: Semana de Terça a Domingo
+                  </strong>
+                  <p className="text-purple-900 mt-0.5">
+                    Período agendado: <strong>Terça ({overseerWeek.startDate.split('-').reverse().join('/')})</strong> até{' '}
+                    <strong>Domingo ({overseerWeek.endDate.split('-').reverse().join('/')})</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 3. Time Selection with Quick Presets */}
@@ -983,7 +1025,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   const [y, m, d] = res.date.split('-');
                   const dateObj = new Date(res.date + 'T12:00:00');
                   const weekdayShort = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
-                  const dateDisplay = `${weekdayShort}, ${parseInt(d)} de ${MONTH_NAMES[parseInt(m) - 1].slice(0, 3)}. de ${y}`;
+                  const dateDisplay = res.endDate
+                    ? `Terça a Domingo, ${parseInt(d)} a ${parseInt(res.endDate.split('-')[2])} de ${MONTH_NAMES[parseInt(m) - 1].slice(0, 3)}. de ${y} (Semana da Visita)`
+                    : `${weekdayShort}, ${parseInt(d)} de ${MONTH_NAMES[parseInt(m) - 1].slice(0, 3)}. de ${y}`;
 
                   return (
                     <div
@@ -991,8 +1035,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       className="bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-3.5 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
                     >
                       <div>
-                        <div className="text-xs font-semibold text-slate-500 mb-0.5">
-                          {dateDisplay}
+                        <div className="text-xs font-semibold text-slate-500 mb-0.5 flex items-center gap-1.5">
+                          <span>{dateDisplay}</span>
+                          {res.endDate && (
+                            <span className="text-[10px] font-black uppercase px-1.5 py-0.5 bg-purple-100 text-purple-900 rounded">
+                              1 Semana
+                            </span>
+                          )}
                         </div>
                         <h5 className="text-sm sm:text-base font-bold text-slate-900">
                           {res.eventType} - {res.entityGroup}

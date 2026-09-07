@@ -133,6 +133,12 @@ export const EVENT_TYPES: EventTypeInfo[] = [
     iconName: 'Award',
   },
   {
+    id: 'Reunião Trimestral',
+    label: 'Reunião Trimestral',
+    defaultDurationHours: 2,
+    iconName: 'CalendarRange',
+  },
+  {
     id: 'Outro Uso',
     label: 'Outro Uso Autorizado',
     defaultDurationHours: 2,

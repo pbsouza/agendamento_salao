@@ -25,12 +25,51 @@ export const DEFAULT_WHATSAPP_CONFIG: WhatsAppConfig = {
   autoOpenWhatsapp: true,
 };
 
+const memoryStore: Record<string, string> = {};
+
+export const safeStorage = {
+  getItem(key: string): string | null {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        return window.localStorage.getItem(key);
+      }
+    } catch {}
+    return memoryStore[key] ?? null;
+  },
+  setItem(key: string, value: string): void {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch {}
+    memoryStore[key] = value;
+  },
+  removeItem(key: string): void {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {}
+    delete memoryStore[key];
+  },
+  clear(): void {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        window.localStorage.clear();
+      }
+    } catch {}
+    for (const key in memoryStore) {
+      delete memoryStore[key];
+    }
+  },
+};
+
 const RESERVATIONS_CACHE_KEY = 'kingdom_hall_reservations_cache_v1';
 const SCHEDULES_CACHE_KEY = 'kingdom_hall_schedules_cache_v1';
 
 function getCachedReservations(): Reservation[] {
   try {
-    const data = localStorage.getItem(RESERVATIONS_CACHE_KEY);
+    const data = safeStorage.getItem(RESERVATIONS_CACHE_KEY);
     if (!data) return [];
     const list: Reservation[] = JSON.parse(data);
     return list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
@@ -41,7 +80,7 @@ function getCachedReservations(): Reservation[] {
 
 function setCachedReservations(list: Reservation[]): void {
   try {
-    localStorage.setItem(RESERVATIONS_CACHE_KEY, JSON.stringify(list));
+    safeStorage.setItem(RESERVATIONS_CACHE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('Cache write failed:', err);
   }
@@ -49,7 +88,7 @@ function setCachedReservations(list: Reservation[]): void {
 
 function getCachedSchedules(): WeeklySchedule[] {
   try {
-    const data = localStorage.getItem(SCHEDULES_CACHE_KEY);
+    const data = safeStorage.getItem(SCHEDULES_CACHE_KEY);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
@@ -58,7 +97,7 @@ function getCachedSchedules(): WeeklySchedule[] {
 
 function setCachedSchedules(list: WeeklySchedule[]): void {
   try {
-    localStorage.setItem(SCHEDULES_CACHE_KEY, JSON.stringify(list));
+    safeStorage.setItem(SCHEDULES_CACHE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('Cache write failed:', err);
   }
@@ -129,10 +168,11 @@ export async function checkAndArchivePastReservations(
       continue;
     }
 
+    const effectiveEndDate = res.endDate || res.date;
     let shouldArchive = false;
-    if (res.date < currentDateStr) {
+    if (effectiveEndDate < currentDateStr) {
       shouldArchive = true;
-    } else if (res.date === currentDateStr && res.endTime < currentTimeStr) {
+    } else if (effectiveEndDate === currentDateStr && res.endTime < currentTimeStr) {
       shouldArchive = true;
     }
 
@@ -205,13 +245,19 @@ export function checkTimeConflict(
   endTime: string,
   reservationsList: Reservation[],
   excludeId?: string,
-  weeklySchedules?: WeeklySchedule[]
+  weeklySchedules?: WeeklySchedule[],
+  endDate?: string
 ): Reservation | null {
   const activeList = reservationsList.filter((r) => r.status === 'active');
+  const targetEnd = endDate || date;
 
   for (const item of activeList) {
     if (excludeId && item.id === excludeId) continue;
-    if (item.date !== date) continue;
+    
+    // Check if the dates overlap
+    const itemEnd = item.endDate || item.date;
+    const datesOverlap = date <= itemEnd && targetEnd >= item.date;
+    if (!datesOverlap) continue;
 
     // Time overlap logic: (StartA < EndB) AND (EndA > StartB)
     if (startTime < item.endTime && endTime > item.startTime) {
@@ -312,7 +358,7 @@ export async function deleteWeeklySchedule(id: string): Promise<void> {
 
 export function loadAccessibilitySettings(): AccessibilitySettings {
   try {
-    const data = localStorage.getItem(ACCESSIBILITY_STORAGE_KEY);
+    const data = safeStorage.getItem(ACCESSIBILITY_STORAGE_KEY);
     if (!data) return DEFAULT_ACCESSIBILITY;
     return { ...DEFAULT_ACCESSIBILITY, ...JSON.parse(data) };
   } catch {
@@ -322,7 +368,7 @@ export function loadAccessibilitySettings(): AccessibilitySettings {
 
 export function saveAccessibilitySettings(settings: AccessibilitySettings): void {
   try {
-    localStorage.setItem(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(settings));
+    safeStorage.setItem(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(settings));
   } catch (err) {
     console.error('Error saving accessibility settings:', err);
   }
@@ -331,7 +377,7 @@ export function saveAccessibilitySettings(settings: AccessibilitySettings): void
 // WhatsApp Config Storage (stored in localStorage)
 export function loadWhatsAppConfig(): WhatsAppConfig {
   try {
-    const data = localStorage.getItem(WHATSAPP_CONFIG_KEY);
+    const data = safeStorage.getItem(WHATSAPP_CONFIG_KEY);
     if (!data) return DEFAULT_WHATSAPP_CONFIG;
     return { ...DEFAULT_WHATSAPP_CONFIG, ...JSON.parse(data) };
   } catch {
@@ -341,7 +387,7 @@ export function loadWhatsAppConfig(): WhatsAppConfig {
 
 export function saveWhatsAppConfig(config: WhatsAppConfig): void {
   try {
-    localStorage.setItem(WHATSAPP_CONFIG_KEY, JSON.stringify(config));
+    safeStorage.setItem(WHATSAPP_CONFIG_KEY, JSON.stringify(config));
   } catch (err) {
     console.error('Error saving WhatsApp config:', err);
   }

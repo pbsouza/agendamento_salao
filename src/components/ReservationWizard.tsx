@@ -13,12 +13,14 @@ import {
   Share2, 
   PlusCircle,
   HelpCircle,
+  Award,
   X
 } from 'lucide-react';
 import { EntityGroup, EventType, Reservation, WhatsAppConfig, WeeklySchedule } from '../types';
 import { ENTITY_LIST, EVENT_TYPES } from '../data/entities';
 import { checkTimeConflict, addReservation } from '../utils/storage';
 import { formatWhatsAppMessage, openWhatsAppSharing } from '../utils/whatsapp';
+import { getCircuitOverseerWeek } from '../utils/dateUtils';
 
 interface ReservationWizardProps {
   reservations: Reservation[];
@@ -48,6 +50,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
   // Date & Time
   const todayStr = new Date().toISOString().split('T')[0];
   const [date, setDate] = React.useState(initialDate || todayStr);
+  const [endDate, setEndDate] = React.useState<string | undefined>(undefined);
   const [startTime, setStartTime] = React.useState('19:30');
   const [endTime, setEndTime] = React.useState('21:30');
 
@@ -66,10 +69,10 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
   // Auto conflict check on date/time change
   React.useEffect(() => {
     if (date && startTime && endTime) {
-      const conflictFound = checkTimeConflict(date, startTime, endTime, reservations, undefined, weeklySchedules);
+      const conflictFound = checkTimeConflict(date, startTime, endTime, reservations, undefined, weeklySchedules, endDate);
       setConflict(conflictFound);
     }
-  }, [date, startTime, endTime, reservations, weeklySchedules]);
+  }, [date, endDate, startTime, endTime, reservations, weeklySchedules]);
 
   // Quick date helper handlers
   const setQuickDate = (type: 'today' | 'tomorrow' | 'saturday' | 'sunday') => {
@@ -83,6 +86,16 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
     }
     const formatted = d.toISOString().split('T')[0];
     setDate(formatted);
+  };
+
+  // Quick week helper for Circuit Overseer visit
+  const setQuickOverseerWeek = (offsetWeeks: number = 0) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetWeeks * 7);
+    const formatted = d.toISOString().split('T')[0];
+    const week = getCircuitOverseerWeek(formatted);
+    setDate(week.startDate);
+    setEndDate(week.endDate);
   };
 
   // Submit Handler
@@ -99,6 +112,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
         eventType: selectedEventType,
         title: title.trim() || selectedEventType,
         date,
+        endDate: selectedEventType === 'Visita do Viajante' ? (endDate || getCircuitOverseerWeek(date).endDate) : undefined,
         startTime,
         endTime,
         responsibleName: responsibleName.trim(),
@@ -264,11 +278,20 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {EVENT_TYPES.map((ev) => {
               const isSelected = selectedEventType === ev.id;
+              const isSuperintendente = ev.id === 'Visita do Viajante';
               return (
                 <button
                   key={ev.id}
                   onClick={() => {
                     setSelectedEventType(ev.id);
+                    if (isSuperintendente) {
+                      setSelectedEntity('Viajante');
+                      const week = getCircuitOverseerWeek(date);
+                      setDate(week.startDate);
+                      setEndDate(week.endDate);
+                    } else {
+                      setEndDate(undefined);
+                    }
                   }}
                   className={`p-4 rounded-2xl border-4 text-left transition-all flex items-center gap-4 ${
                     isSelected
@@ -276,16 +299,22 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
                       : 'bg-slate-50 border-slate-300 hover:border-slate-400'
                   }`}
                 >
-                  <div className="p-3 bg-slate-900 text-amber-400 rounded-xl shrink-0">
-                    <Calendar className="w-6 h-6" />
+                  <div className={`p-3 rounded-xl shrink-0 ${isSuperintendente ? 'bg-purple-900 text-amber-300' : 'bg-slate-900 text-amber-400'}`}>
+                    {isSuperintendente ? <Award className="w-6 h-6" /> : <Calendar className="w-6 h-6" />}
                   </div>
                   <div>
                     <h4 className="text-base sm:text-lg font-black text-slate-900">
                       {ev.label}
                     </h4>
-                    <span className="text-xs text-slate-500 font-bold">
-                      Duração sugerida: ~{ev.defaultDurationHours} hora(s)
-                    </span>
+                    {isSuperintendente ? (
+                      <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-2 py-0.5 rounded-md inline-block mt-0.5">
+                        Período de 1 semana (Terça a Domingo)
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-bold">
+                        Duração sugerida: ~{ev.defaultDurationHours} hora(s)
+                      </span>
+                    )}
                   </div>
                 </button>
               );
@@ -337,82 +366,206 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
             Escolha o dia e o horário de início e término no Salão do Reino:
           </p>
 
-          {/* Quick Date Presets */}
-          <div className="mb-6">
-            <label className="block text-slate-800 font-extrabold text-base mb-2">
-              Escolha rápida de dia:
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setQuickDate('today')}
-                className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
-              >
-                📅 Hoje
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuickDate('tomorrow')}
-                className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
-              >
-                🌅 Amanhã
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuickDate('saturday')}
-                className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
-              >
-                ✨ Próximo Sábado
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuickDate('sunday')}
-                className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
-              >
-                🏠 Próximo Domingo
-              </button>
-            </div>
-          </div>
+          {selectedEventType === 'Visita do Viajante' ? (
+            /* Dedicated Circuit Overseer Visit Week Selection (Tuesday to Sunday) */
+            <div className="mb-6 space-y-4">
+              <div className="bg-purple-50 border-4 border-purple-400 p-5 rounded-2xl">
+                <div className="flex items-start gap-3.5 mb-4">
+                  <div className="p-3 bg-purple-900 text-amber-300 rounded-xl shrink-0">
+                    <Award className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black text-purple-950">
+                      Período da Visita: 1 Semana Completa (Terça a Domingo)
+                    </h4>
+                    <p className="text-sm font-bold text-purple-900 mt-1">
+                      A visita do Superintendente de Circuito compreende 6 dias consecutivos de atividades no Salão do Reino, iniciando na <strong>Terça-feira</strong> e concluindo no <strong>Domingo</strong>.
+                    </p>
+                  </div>
+                </div>
 
-          {/* Date Picker Input */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="md:col-span-1">
-              <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
-                Data do Agendamento:
-              </label>
-              <input
-                type="date"
-                min={todayStr}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
-              />
-            </div>
+                {/* Quick Week Selectors */}
+                <div className="mb-4">
+                  <label className="block text-purple-950 font-extrabold text-sm mb-2">
+                    Escolha rápida da semana da visita:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setQuickOverseerWeek(0)}
+                      className="p-3 bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-600 rounded-xl font-black text-purple-950 text-xs sm:text-sm shadow-sm transition-all"
+                    >
+                      📅 Esta Semana (Ter-Dom)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickOverseerWeek(1)}
+                      className="p-3 bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-600 rounded-xl font-black text-purple-950 text-xs sm:text-sm shadow-sm transition-all"
+                    >
+                      🚀 Próxima Semana
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickOverseerWeek(2)}
+                      className="p-3 bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-600 rounded-xl font-black text-purple-950 text-xs sm:text-sm shadow-sm transition-all"
+                    >
+                      ✨ Em 2 Semanas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickOverseerWeek(4)}
+                      className="p-3 bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-600 rounded-xl font-black text-purple-950 text-xs sm:text-sm shadow-sm transition-all"
+                    >
+                      🗓️ No Próximo Mês
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
-                Horário de Início:
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
-              />
-            </div>
+                {/* Date range picker */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white p-4 rounded-xl border-2 border-purple-300 shadow-sm">
+                    <label className="block text-slate-900 font-black text-sm mb-1.5">
+                      🗓️ Selecione uma data de referência (ou Terça inicial):
+                    </label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => {
+                        const week = getCircuitOverseerWeek(e.target.value);
+                        setDate(week.startDate);
+                        setEndDate(week.endDate);
+                      }}
+                      className="w-full p-3 border-2 border-purple-400 rounded-xl text-base font-black focus:border-purple-600 focus:ring-2 focus:ring-purple-200"
+                    />
+                    <p className="text-xs text-slate-500 font-semibold mt-1">
+                      O sistema calcula automaticamente o início (Terça) e término (Domingo).
+                    </p>
+                  </div>
 
-            <div>
-              <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
-                Horário de Término:
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
-              />
+                  <div className="bg-purple-900 text-white p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                    <span className="text-xs uppercase font-black text-amber-300 tracking-wider">
+                      Semana Calculada da Visita
+                    </span>
+                    <div className="text-base sm:text-lg font-black mt-1">
+                      Início: Terça-feira ({date.split('-').reverse().join('/')})
+                    </div>
+                    <div className="text-base sm:text-lg font-black text-amber-300">
+                      Término: Domingo ({(endDate || getCircuitOverseerWeek(date).endDate).split('-').reverse().join('/')})
+                    </div>
+                    <span className="text-xs text-purple-200 font-bold mt-1">
+                      6 dias de atividades reservadas para a congregação
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time inputs for the visit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-900 font-black text-base mb-1.5">
+                    Horário Diário de Início das Atividades:
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full p-3.5 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-900 font-black text-base mb-1.5">
+                    Horário Diário de Término das Atividades:
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full p-3.5 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Standard single-day flow */
+            <>
+              {/* Quick Date Presets */}
+              <div className="mb-6">
+                <label className="block text-slate-800 font-extrabold text-base mb-2">
+                  Escolha rápida de dia:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate('today')}
+                    className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
+                  >
+                    📅 Hoje
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate('tomorrow')}
+                    className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
+                  >
+                    🌅 Amanhã
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate('saturday')}
+                    className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
+                  >
+                    ✨ Próximo Sábado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate('sunday')}
+                    className="p-3 bg-slate-100 hover:bg-amber-100 border-2 border-slate-300 hover:border-amber-500 rounded-xl font-black text-slate-900 text-sm"
+                  >
+                    🏠 Próximo Domingo
+                  </button>
+                </div>
+              </div>
+
+              {/* Date Picker Input */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="md:col-span-1">
+                  <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
+                    Data do Agendamento:
+                  </label>
+                  <input
+                    type="date"
+                    min={todayStr}
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
+                    Horário de Início:
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-900 font-black text-base sm:text-lg mb-2">
+                    Horário de Término:
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full p-4 border-4 border-slate-300 rounded-2xl text-lg font-black focus:border-amber-500 focus:ring-4 focus:ring-amber-200"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Conflict Warning Banner */}
           {conflict ? (
@@ -563,7 +716,11 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({
                 {selectedEntity}
               </span>
               <span className="text-slate-300 font-extrabold text-base">
-                📅 {date.split('-').reverse().join('/')}
+                {selectedEventType === 'Visita do Viajante' && endDate ? (
+                  `🗓️ ${date.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Terça a Domingo)`
+                ) : (
+                  `📅 ${date.split('-').reverse().join('/')}`
+                )}
               </span>
             </div>
 

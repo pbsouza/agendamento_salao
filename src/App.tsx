@@ -11,7 +11,8 @@ import {
   subscribeReservations, 
   subscribeWeeklySchedules,
   loadAccessibilitySettings, 
-  loadWhatsAppConfig
+  loadWhatsAppConfig,
+  safeStorage
 } from './utils/storage';
 
 export default function App() {
@@ -37,11 +38,11 @@ export default function App() {
       setWeeklySchedules(data);
     });
 
-    // Check on first visit if tutorial was seen
-    const tutorialSeen = localStorage.getItem('kingdom_hall_tutorial_seen');
+    // Check on first visit if tutorial was seen safely
+    const tutorialSeen = safeStorage.getItem('kingdom_hall_tutorial_seen');
     if (!tutorialSeen) {
       setIsTutorialOpen(true);
-      localStorage.setItem('kingdom_hall_tutorial_seen', 'true');
+      safeStorage.setItem('kingdom_hall_tutorial_seen', 'true');
     }
 
     return () => {

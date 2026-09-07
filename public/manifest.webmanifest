@@ -1,7 +1,7 @@
 {
-  "id": "./",
-  "start_url": "./",
-  "scope": "./",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "name": "Reservas do Salão do Reino - Juparanã",
   "short_name": "Salão Reino",
   "description": "Calendário mensal e agendamento de reuniões e atividades do Salão do Reino Juparanã.",
@@ -12,31 +12,31 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "./favicon.png",
+      "src": "/favicon.png",
       "sizes": "64x64",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./apple-touch-icon.png",
+      "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./pwa-192x192.png",
+      "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./pwa-512x512.png",
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./pwa-maskable-512x512.png",
+      "src": "/pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

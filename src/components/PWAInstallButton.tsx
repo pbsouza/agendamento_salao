@@ -20,7 +20,7 @@ export const PWAInstallButton: React.FC = () => {
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition-all animate-pulse hover:animate-none"
         title="Instalar Aplicativo no Dispositivo"
       >
-        <Download className="w-3.5 h-3.5" />
+        <img src="/favicon.png" alt="" className="w-3.5 h-3.5 object-contain" />
         <span>Instalar App</span>
       </button>
     );
@@ -36,7 +36,7 @@ export const PWAInstallButton: React.FC = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all"
           title="Como instalar no iPhone / iPad"
         >
-          <Download className="w-3.5 h-3.5 text-amber-600" />
+          <img src="/favicon.png" alt="" className="w-3.5 h-3.5 object-contain" />
           <span>Instalar no iOS</span>
         </button>
 
@@ -44,9 +44,14 @@ export const PWAInstallButton: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
             <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl text-slate-800 border border-slate-200">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-base font-bold text-slate-900">
-                  Instalar no iPhone / iPad
-                </h3>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-slate-900 p-1 flex items-center justify-center shadow-sm shrink-0">
+                    <img src="/favicon.png" alt="Salão do Reino" className="w-full h-full object-contain" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Instalar no iPhone / iPad
+                  </h3>
+                </div>
                 <button
                   onClick={() => setShowIOSGuide(false)}
                   className="p-1 rounded-md text-slate-400 hover:text-slate-700"

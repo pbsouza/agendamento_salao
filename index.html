@@ -7,6 +7,40 @@
     <meta name="description" content="Calendário mensal e gerenciador de agendamentos compartilhado do Salão do Reino da Congregação Juparanã e comissões com validação de horários e integração com WhatsApp." />
     <meta property="og:title" content="Reservas do Salão do Reino - Juparanã" />
     <meta property="og:description" content="Calendário mensal e gerenciador de agendamentos compartilhado do Salão do Reino da Congregação Juparanã e comissões com validação de horários e integração com WhatsApp." />
+
+    <!-- Stale Cache & Legacy Service Worker Purge (Prevents Blank Screen on Update) -->
+    <script>
+      (function() {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                // If in iframe or if it's workbox, immediately unregister
+                if (window.self !== window.top) {
+                  regs[i].unregister();
+                } else {
+                  var scriptURL = regs[i].active ? regs[i].active.scriptURL : '';
+                  if (scriptURL.indexOf('workbox') !== -1 || scriptURL.indexOf('dev-dist') !== -1) {
+                    regs[i].unregister();
+                  }
+                }
+              }
+            }).catch(function() {});
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var i = 0; i < names.length; i++) {
+                if (names[i].indexOf('workbox') !== -1 || names[i].indexOf('salao-reino') !== -1) {
+                  caches.delete(names[i]);
+                }
+              }
+            }).catch(function() {});
+          }
+        } catch (e) {
+          console.warn('Cache purge notice:', e);
+        }
+      })();
+    </script>
     
     <!-- PWA & Mobile Web Meta Tags -->
     <meta name="theme-color" content="#0f172a" />
@@ -15,14 +49,26 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Salão Reino" />
 
-    <!-- Relative paths for GitHub Pages / PWA Icons and Manifest -->
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <!-- Favicon & PWA Icons with Transparent PNG Background -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback Loading State: Replaced automatically when React mounts -->
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; padding: 1.5rem; text-align: center;">
+        <div style="width: 48px; height: 48px; border: 4px solid #e2e8f0; border-top-color: #d97706; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1.25rem;"></div>
+        <h2 style="font-size: 1.125rem; font-weight: 700; margin: 0 0 0.5rem; color: #0f172a;">Reservas do Salão do Reino</h2>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Carregando congregações e calendário...</p>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

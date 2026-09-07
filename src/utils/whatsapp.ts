@@ -44,7 +44,11 @@ export function formatWhatsAppMessage(input: Reservation | Reservation[]): strin
     const emoji = getEntityEmoji(res.entityGroup);
     const shortEntity = getShortEntityName(res.entityGroup);
     const [, month, day] = res.date.split('-');
-    const dateFormatted = `${day}/${month}`;
+    let dateFormatted = `${day}/${month}`;
+    if (res.endDate && res.endDate !== res.date) {
+      const [, endMonth, endDay] = res.endDate.split('-');
+      dateFormatted = `${day}/${month} a ${endDay}/${endMonth} (Terça a Domingo)`;
+    }
     const eventName = res.title && res.title.trim() ? res.title : res.eventType;
 
     bodyText += `${emoji} = ${shortEntity} (${res.responsibleName})\n`;

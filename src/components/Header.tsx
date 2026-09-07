@@ -7,8 +7,7 @@ import {
   PlusCircle, 
   Calendar as CalendarIcon, 
   Archive,
-  Type,
-  Building2
+  Type
 } from 'lucide-react';
 import { AccessibilitySettings } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -55,8 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2.5 cursor-pointer" 
             onClick={() => setActiveTab('calendar')}
           >
-            <div className="p-2 bg-slate-900 text-white rounded-lg shadow-sm">
-              <Building2 className="w-4 h-4 text-amber-400" />
+            <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center p-1.5 shadow-sm shrink-0 border border-slate-800">
+              <img src="/favicon.png" alt="Salão do Reino" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
