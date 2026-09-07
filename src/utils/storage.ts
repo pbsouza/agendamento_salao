@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { AccessibilitySettings, Reservation, WhatsAppConfig, WeeklySchedule } from '../types';
+import { getCircuitOverseerWeek } from './dateUtils';
 
 const ACCESSIBILITY_STORAGE_KEY = 'kingdom_hall_accessibility_v1';
 
@@ -103,19 +104,58 @@ function setCachedSchedules(list: WeeklySchedule[]): void {
   }
 }
 
+// Helper to remove any undefined fields before sending to Firestore
+export function sanitizeForFirestore<T extends Record<string, any>>(data: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val !== undefined) {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+// Active UI listeners for instant synchronous/optimistic UI updates
+const reservationListeners = new Set<(reservations: Reservation[]) => void>();
+const scheduleListeners = new Set<(schedules: WeeklySchedule[]) => void>();
+
+function notifyReservationListeners(list: Reservation[]) {
+  reservationListeners.forEach((listener) => {
+    try {
+      listener(list);
+    } catch (err) {
+      console.error('Error in reservation listener:', err);
+    }
+  });
+}
+
+function notifyScheduleListeners(list: WeeklySchedule[]) {
+  scheduleListeners.forEach((listener) => {
+    try {
+      listener(list);
+    } catch (err) {
+      console.error('Error in schedule listener:', err);
+    }
+  });
+}
+
 // Real-time Firestore Subscription for Reservations with Offline Cache Fallback
 export function subscribeReservations(
   onData: (reservations: Reservation[]) => void
 ): () => void {
+  reservationListeners.add(onData);
+
   // Deliver cached data immediately to prevent blank delay
   const initialCache = getCachedReservations();
   if (initialCache.length > 0) {
     onData(initialCache);
   }
 
+  let unsubscribeFirestore = () => {};
+
   try {
     const colRef = collection(db, 'reservations');
-    return onSnapshot(
+    unsubscribeFirestore = onSnapshot(
       colRef,
       (snapshot) => {
         const list: Reservation[] = [];
@@ -132,18 +172,22 @@ export function subscribeReservations(
         setCachedReservations(list);
         // Check and archive past reservations automatically
         checkAndArchivePastReservations(list);
-        onData(list);
+        notifyReservationListeners(list);
       },
       (error) => {
         console.warn('Firestore subscription offline/error, using cache:', error);
-        onData(getCachedReservations());
+        notifyReservationListeners(getCachedReservations());
       }
     );
   } catch (err) {
     console.warn('Could not initialize reservations subscription, using local cache:', err);
-    onData(getCachedReservations());
-    return () => {};
+    notifyReservationListeners(getCachedReservations());
   }
+
+  return () => {
+    reservationListeners.delete(onData);
+    unsubscribeFirestore();
+  };
 }
 
 // Automatically update status to 'archived' in Firestore for past reservations
@@ -168,7 +212,7 @@ export async function checkAndArchivePastReservations(
       continue;
     }
 
-    const effectiveEndDate = res.endDate || res.date;
+    const effectiveEndDate = res.endDate || (res.eventType === 'Visita do Viajante' ? getCircuitOverseerWeek(res.date).endDate : res.date);
     let shouldArchive = false;
     if (effectiveEndDate < currentDateStr) {
       shouldArchive = true;
@@ -202,40 +246,49 @@ export async function addReservation(
     status: 'active',
   };
 
-  // Immediate local cache update
+  // Immediate optimistic local cache update & notify listeners
   const cached = getCachedReservations();
-  setCachedReservations([...cached, newRes]);
+  const updatedList = [...cached.filter((r) => r.id !== id), newRes].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
+  );
+  setCachedReservations(updatedList);
+  notifyReservationListeners(updatedList);
 
+  // Save to Firestore with sanitized payload (stripping undefined)
   try {
     const docRef = doc(db, 'reservations', id);
-    await setDoc(docRef, newRes);
+    await setDoc(docRef, sanitizeForFirestore(newRes));
   } catch (err) {
-    console.warn('Could not save reservation to Firestore, stored in local cache:', err);
+    console.error('Could not save reservation to Firestore, kept in local cache:', err);
   }
   return newRes;
 }
 
 export async function updateReservation(reservation: Reservation): Promise<void> {
   const cached = getCachedReservations();
-  setCachedReservations(cached.map((r) => (r.id === reservation.id ? reservation : r)));
+  const updatedList = cached.map((r) => (r.id === reservation.id ? reservation : r));
+  setCachedReservations(updatedList);
+  notifyReservationListeners(updatedList);
 
   try {
     const docRef = doc(db, 'reservations', reservation.id);
-    await setDoc(docRef, reservation, { merge: true });
+    await setDoc(docRef, sanitizeForFirestore(reservation), { merge: true });
   } catch (err) {
-    console.warn('Could not update in Firestore, stored in local cache:', err);
+    console.error('Could not update in Firestore, kept in local cache:', err);
   }
 }
 
 export async function deleteReservation(id: string): Promise<void> {
   const cached = getCachedReservations();
-  setCachedReservations(cached.filter((r) => r.id !== id));
+  const updatedList = cached.filter((r) => r.id !== id);
+  setCachedReservations(updatedList);
+  notifyReservationListeners(updatedList);
 
   try {
     const docRef = doc(db, 'reservations', id);
     await deleteDoc(docRef);
   } catch (err) {
-    console.warn('Could not delete in Firestore, removed from local cache:', err);
+    console.error('Could not delete in Firestore, removed from local cache:', err);
   }
 }
 
@@ -301,14 +354,17 @@ export function checkTimeConflict(
 export function subscribeWeeklySchedules(
   onData: (schedules: WeeklySchedule[]) => void
 ): () => void {
+  scheduleListeners.add(onData);
   const initialCache = getCachedSchedules();
   if (initialCache.length > 0) {
     onData(initialCache);
   }
 
+  let unsub = () => {};
+
   try {
     const colRef = collection(db, 'weekly_schedules');
-    return onSnapshot(
+    unsub = onSnapshot(
       colRef,
       (snapshot) => {
         const list: WeeklySchedule[] = [];
@@ -325,18 +381,22 @@ export function subscribeWeeklySchedules(
           return a.startTime.localeCompare(b.startTime);
         });
         setCachedSchedules(list);
-        onData(list);
+        notifyScheduleListeners(list);
       },
       (error) => {
         console.warn('Firestore weekly schedules offline/error, using cache:', error);
-        onData(getCachedSchedules());
+        notifyScheduleListeners(getCachedSchedules());
       }
     );
   } catch (err) {
     console.warn('Could not initialize weekly schedules subscription, using local cache:', err);
-    onData(getCachedSchedules());
-    return () => {};
+    notifyScheduleListeners(getCachedSchedules());
   }
+
+  return () => {
+    scheduleListeners.delete(onData);
+    unsub();
+  };
 }
 
 export async function addWeeklySchedule(
@@ -344,14 +404,36 @@ export async function addWeeklySchedule(
 ): Promise<WeeklySchedule> {
   const id = 'ws-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
   const newSchedule: WeeklySchedule = { ...schedule, id };
-  const docRef = doc(db, 'weekly_schedules', id);
-  await setDoc(docRef, newSchedule);
+
+  const cached = getCachedSchedules();
+  const updatedList = [...cached, newSchedule].sort((a, b) => {
+    if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+    return a.startTime.localeCompare(b.startTime);
+  });
+  setCachedSchedules(updatedList);
+  notifyScheduleListeners(updatedList);
+
+  try {
+    const docRef = doc(db, 'weekly_schedules', id);
+    await setDoc(docRef, sanitizeForFirestore(newSchedule));
+  } catch (err) {
+    console.error('Could not save weekly schedule to Firestore, kept in local cache:', err);
+  }
   return newSchedule;
 }
 
 export async function deleteWeeklySchedule(id: string): Promise<void> {
-  const docRef = doc(db, 'weekly_schedules', id);
-  await deleteDoc(docRef);
+  const cached = getCachedSchedules();
+  const updatedList = cached.filter((s) => s.id !== id);
+  setCachedSchedules(updatedList);
+  notifyScheduleListeners(updatedList);
+
+  try {
+    const docRef = doc(db, 'weekly_schedules', id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Could not delete weekly schedule in Firestore, removed from local cache:', err);
+  }
 }
 
 // Accessibility Settings Storage (stored in localStorage)

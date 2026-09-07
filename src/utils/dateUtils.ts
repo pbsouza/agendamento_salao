@@ -49,8 +49,9 @@ export function getCircuitOverseerWeek(referenceDateStr: string): { startDate: s
  * Checks if a specific calendar day is covered by a reservation (supporting single day or multi-day range).
  */
 export function isDateInReservation(res: Reservation, targetDateStr: string): boolean {
-  if (res.endDate) {
-    return targetDateStr >= res.date && targetDateStr <= res.endDate;
+  const effectiveEndDate = res.endDate || (res.eventType === 'Visita do Viajante' ? getCircuitOverseerWeek(res.date).endDate : undefined);
+  if (effectiveEndDate) {
+    return targetDateStr >= res.date && targetDateStr <= effectiveEndDate;
   }
   return res.date === targetDateStr;
 }

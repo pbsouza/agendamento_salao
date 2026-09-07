@@ -51,13 +51,18 @@ export default function App() {
     };
   }, []);
 
+  const [calendarSelectedDate, setCalendarSelectedDate] = React.useState<string | undefined>(undefined);
+
   const handleOpenWizard = (date?: string) => {
     setWizardInitialDate(date);
     setActiveTab('wizard');
   };
 
-  const handleWizardComplete = () => {
+  const handleWizardComplete = (newReservation?: Reservation) => {
     setWizardInitialDate(undefined);
+    if (newReservation?.date) {
+      setCalendarSelectedDate(newReservation.date);
+    }
     setActiveTab('calendar');
   };
 
@@ -91,6 +96,7 @@ export default function App() {
             onOpenWizard={handleOpenWizard}
             onOpenSettings={() => setIsSettingsOpen(true)}
             whatsAppConfig={whatsAppConfig}
+            initialSelectedDate={calendarSelectedDate}
           />
         )}
 

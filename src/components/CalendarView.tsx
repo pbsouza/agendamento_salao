@@ -34,6 +34,7 @@ interface CalendarViewProps {
   onOpenWizard: (date?: string) => void;
   onOpenSettings: () => void;
   whatsAppConfig: WhatsAppConfig;
+  initialSelectedDate?: string;
 }
 
 const MONTH_NAMES = [
@@ -50,6 +51,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onOpenWizard,
   onOpenSettings,
   whatsAppConfig,
+  initialSelectedDate,
 }) => {
   // Current real date
   const today = new Date();
@@ -59,8 +61,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [viewYear, setViewYear] = React.useState<number>(today.getFullYear());
   const [viewMonth, setViewMonth] = React.useState<number>(today.getMonth()); // 0-indexed
 
-  // Selected date on calendar (defaults to today)
-  const [selectedDate, setSelectedDate] = React.useState<string>(todayStr);
+  // Selected date on calendar (defaults to today or initialSelectedDate)
+  const [selectedDate, setSelectedDate] = React.useState<string>(initialSelectedDate || todayStr);
+
+  // Auto-sync month and year if initialSelectedDate changes
+  React.useEffect(() => {
+    if (initialSelectedDate && initialSelectedDate.includes('-')) {
+      setSelectedDate(initialSelectedDate);
+      const [y, m] = initialSelectedDate.split('-').map(Number);
+      if (y && m) {
+        setViewYear(y);
+        setViewMonth(m - 1);
+      }
+    }
+  }, [initialSelectedDate]);
 
   // Filters & modals
   const [selectedEntityFilter, setSelectedEntityFilter] = React.useState<string>('all');
